@@ -1,3 +1,5 @@
+use std::cell::RefCell;
+
 pub type SWord = i32;
 pub type Word = u32;
 pub type PAddr = u32;

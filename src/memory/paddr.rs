@@ -2,7 +2,7 @@ use core::panic;
 
 use crate::common::*;
 
-use super::MemoryManager;
+use super::{MemoryManager, init::MEMORY_MANAGER};
 
 impl MemoryManager {
     fn paddr_to_host_index(paddr: PAddr) -> usize {
@@ -50,9 +50,15 @@ impl MemoryManager {
 }
 
 pub fn paddr_read(paddr: PAddr, len: usize) -> Word {
-    unimplemented!()
+    MEMORY_MANAGER
+        .exclusive_access()
+        .host_read(MemoryManager::paddr_to_host_index(paddr), len)
 }
 
 pub fn paddr_write(paddr: PAddr, len: usize, data: Word) {
-    unimplemented!()
+    MEMORY_MANAGER.exclusive_access().host_write(
+        MemoryManager::paddr_to_host_index(paddr),
+        len,
+        data,
+    );
 }
