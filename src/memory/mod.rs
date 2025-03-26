@@ -1,28 +1,13 @@
-use crate::common::{PAddr, PMEM_SIZE};
+use haddr::HMEM_SIZE;
 
+mod haddr;
 mod init;
 mod paddr;
 
+pub use paddr::{paddr_read, paddr_write};
+
 pub struct MemoryManager {
     mem: [u8; HMEM_SIZE],
-}
-
-unsafe impl Sync for MemoryManager {}
-
-#[derive(Clone, Copy)]
-struct HAddr(pub usize);
-
-const HMEM_OFFSET: usize = 0x80000000;
-const HMEM_SIZE: usize = PMEM_SIZE;
-
-impl From<PAddr> for HAddr {
-    fn from(value: PAddr) -> Self {
-        HAddr(value.0 as usize - HMEM_OFFSET)
-    }
-}
-
-fn check_host_addr(haddr: HAddr, len: usize) -> bool {
-    haddr.0 < HMEM_SIZE && haddr.0 + len < HMEM_SIZE && haddr.0 + len > haddr.0
 }
 
 #[derive(Debug)]
