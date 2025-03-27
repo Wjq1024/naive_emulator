@@ -58,6 +58,7 @@ impl Cpu {
         if *EMULATOR_STATUS.exclusive_access() == EmulatorStatus::Stop {
             return;
         }
+        *EMULATOR_STATUS.exclusive_access() = EmulatorStatus::Running;
         for _ in 0..inst_num {
             let mut exec_state = self.fetch_inst();
             Self::decode_inst(&mut exec_state);
@@ -67,6 +68,9 @@ impl Cpu {
                 break;
             }
             self.pc = exec_state.npc;
+        }
+        if *EMULATOR_STATUS.exclusive_access() != EmulatorStatus::Stop {
+            *EMULATOR_STATUS.exclusive_access() = EmulatorStatus::Idle;
         }
     }
 
