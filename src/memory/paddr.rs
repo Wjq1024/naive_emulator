@@ -68,6 +68,7 @@ pub fn paddr_write(paddr: PAddr, len: usize, data: Word) {
         .paddr_write(paddr, len, data)
 }
 
+#[cfg(test)]
 mod tests {
     use crate::memory::{HMEM_SIZE, haddr::HMEM_OFFSET};
 
