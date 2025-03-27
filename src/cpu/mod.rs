@@ -1,7 +1,9 @@
-use init::{CPU, INSTRUCTION_SET};
+use init::INSTRUCTION_SET;
 use inst::{INST_IMM_MASK, INST_RD_MASK, INST_RS1_MASK, INST_RS2_MASK, Instruction};
 
 use crate::{common::*, memory::paddr_read};
+
+pub use init::CPU;
 
 mod init;
 mod inst;
@@ -83,6 +85,7 @@ impl Cpu {
         let inst = exec_state.ir;
         let corr_inst: &Instruction = INSTRUCTION_SET.iter().find(|x| x.is_match(inst)).unwrap();
         corr_inst.exec_inst(exec_state, self);
+        self.gpr[0] = 0;
     }
 }
 

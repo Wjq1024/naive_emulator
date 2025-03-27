@@ -31,5 +31,16 @@ pub static INSTRUCTION_SET: LazyLock<Vec<Instruction>> = LazyLock::new(|| {
                 SignalControl::RegWrite,
             ],
         },
+        // addi, rd = rs1 + sext(imm, 16)
+        Instruction {
+            inst_code: 0b000010,
+            ops: vec![
+                SignalControl::RegRead(1),
+                SignalControl::ImmRead,
+                SignalControl::ALUOp(ALUOperation::SignExtend(16)),
+                SignalControl::ALUOp(ALUOperation::Plus),
+                SignalControl::RegWrite,
+            ],
+        },
     ]
 });
