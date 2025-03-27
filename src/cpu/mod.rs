@@ -1,5 +1,3 @@
-use init::CPU;
-
 use crate::common::*;
 
 mod init;

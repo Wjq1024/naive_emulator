@@ -1,10 +1,6 @@
 use crate::common::*;
 
-use super::{
-    MemoryAccessError, MemoryAccessOperation, MemoryManager,
-    haddr::{HAddr, check_host_addr},
-    init::MEMORY_MANAGER,
-};
+use super::{MemoryAccessError, MemoryManager, init::MEMORY_MANAGER};
 impl MemoryManager {
     pub(super) fn paddr_read(&self, paddr: PAddr, len: usize) -> Word {
         self.haddr_read(paddr.into(), len)
