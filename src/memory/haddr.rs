@@ -35,7 +35,7 @@ impl MemoryManager {
         match check_host_addr(haddr, len) {
             true => Ok(&self.mem[haddr.0..haddr.0 + len]),
             false => Err(MemoryAccessError {
-                oper: MemoryAccessOperation::READ,
+                oper: MemoryAccessOperation::Read,
                 addr: haddr,
                 len,
             }),
@@ -49,9 +49,12 @@ impl MemoryManager {
     ) -> Result<(), MemoryAccessError<HAddr>> {
         let len = data.len();
         match check_host_addr(haddr, len) {
-            true => Ok(self.mem[haddr.0..haddr.0 + len].copy_from_slice(data)),
+            true => {
+                self.mem[haddr.0..haddr.0 + len].copy_from_slice(data);
+                Ok(())
+            }
             false => Err(MemoryAccessError {
-                oper: MemoryAccessOperation::WRITE,
+                oper: MemoryAccessOperation::Write,
                 addr: haddr,
                 len,
             }),

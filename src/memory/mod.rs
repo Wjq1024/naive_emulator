@@ -12,8 +12,8 @@ pub struct MemoryManager {
 
 #[derive(Debug, PartialEq)]
 enum MemoryAccessOperation {
-    READ,
-    WRITE,
+    Read,
+    Write,
 }
 
 #[derive(Debug, PartialEq)]

@@ -18,4 +18,4 @@ impl Instruction {
     }
 }
 
-pub const INST_SET: LazyLock<Vec<Instruction>> = LazyLock::new(|| unimplemented!());
+pub const INST_SET: Vec<Instruction> = Vec::new();
