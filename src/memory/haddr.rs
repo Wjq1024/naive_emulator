@@ -89,8 +89,13 @@ mod tests {
     #[test]
     fn test_haddr_read_and_write() {
         let mut inner = MEMORY_MANAGER.exclusive_access();
+        assert_eq!(inner.haddr_write(HAddr(0), [0; 4].as_slice()), Ok(()));
         assert_eq!(inner.haddr_read(HAddr(0), 1), Ok([0].as_slice()));
         assert_eq!(inner.haddr_read(HAddr(0), 4), Ok([0; 4].as_slice()));
+        assert_eq!(
+            inner.haddr_write(HAddr(HMEM_SIZE - 4), [0; 4].as_slice()),
+            Ok(())
+        );
         assert_eq!(
             inner.haddr_read(HAddr(HMEM_SIZE - 4), 4),
             Ok([0; 4].as_slice())
@@ -98,6 +103,7 @@ mod tests {
         assert_eq!(inner.haddr_write(0.into(), [0xFF].as_slice()), Ok(()));
         assert_eq!(inner.haddr_read(0.into(), 1), Ok([0xFF].as_slice()));
         assert_eq!(inner.haddr_write(HAddr(0), [0xFF; 2].as_slice()), Ok(()));
+        assert_eq!(inner.haddr_write(HAddr(2), [0x00; 2].as_slice()), Ok(()));
         assert_eq!(inner.haddr_read(HAddr(0), 1), Ok([0xFF].as_slice()));
         assert_eq!(inner.haddr_read(HAddr(1), 1), Ok([0xFF].as_slice()));
         assert_eq!(inner.haddr_read(HAddr(1), 2), Ok([0xFF, 0x00].as_slice()));

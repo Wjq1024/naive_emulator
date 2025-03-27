@@ -35,7 +35,7 @@ impl MemoryManager {
         match (paddr.0, len) {
             (pa, 1 | 2 | 4) if pa % 4 == 0 => {
                 let mut data_bytes = [0_u8; 4];
-                let _ = data_bytes.iter_mut().enumerate().map(|(idx, x)| {
+                data_bytes.iter_mut().enumerate().for_each(|(idx, x)| {
                     *x = (data >> (idx * 8)) as u8;
                 });
                 self.haddr_write(paddr.into(), &data_bytes[0..len])
@@ -71,7 +71,7 @@ pub fn paddr_write(paddr: PAddr, len: usize, data: Word) {
 mod tests {
     use crate::memory::{HMEM_SIZE, haddr::HMEM_OFFSET};
 
-    use super::paddr_read;
+    use super::{paddr_read, paddr_write};
 
     #[test]
     #[should_panic]
@@ -100,5 +100,18 @@ mod tests {
     #[test]
     fn test_check_bound5() {
         paddr_read((HMEM_OFFSET as u32 + 20).into(), 2);
+        paddr_read((HMEM_OFFSET as u32 + HMEM_SIZE as u32 - 4).into(), 1);
+    }
+
+    #[test]
+    fn test_paddr_read_and_write() {
+        let w_before = paddr_read((0x8000_4000 - 4).into(), 4);
+        let w_after = paddr_read((0x8000_4000 + 4).into(), 4);
+        paddr_write(0x8000_4000.into(), 4, 0xAABBCCDD);
+        assert_eq!(paddr_read(0x8000_4000.into(), 4), 0xAABBCCDD);
+        assert_eq!(paddr_read(0x8000_4000.into(), 2), 0xCCDD);
+        assert_eq!(paddr_read(0x8000_4000.into(), 1), 0xDD);
+        assert_eq!(paddr_read((0x8000_4000 - 4).into(), 4), w_before);
+        assert_eq!(paddr_read((0x8000_4000 + 4).into(), 4), w_after);
     }
 }
