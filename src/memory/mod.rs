@@ -21,5 +21,4 @@ struct MemoryAccessError<T> {
     oper: MemoryAccessOperation,
     addr: T,
     len: usize,
-    data: Option<u32>,
 }

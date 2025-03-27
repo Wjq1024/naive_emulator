@@ -1,4 +1,4 @@
-use crate::common::{PAddr, PMEM_SIZE, Word};
+use crate::common::{PAddr, PMEM_SIZE};
 
 use super::{MemoryAccessError, MemoryAccessOperation, MemoryManager};
 
@@ -14,7 +14,13 @@ impl From<PAddr> for HAddr {
     }
 }
 
-pub(super) fn check_host_addr(haddr: HAddr, len: usize) -> bool {
+impl From<usize> for HAddr {
+    fn from(value: usize) -> Self {
+        HAddr(value)
+    }
+}
+
+pub fn check_host_addr(haddr: HAddr, len: usize) -> bool {
     haddr.0 < HMEM_SIZE
         && haddr.0.wrapping_add(len) <= HMEM_SIZE
         && haddr.0.wrapping_add(len) > haddr.0
@@ -25,27 +31,13 @@ impl MemoryManager {
         &self,
         haddr: HAddr,
         len: usize,
-    ) -> Result<Word, MemoryAccessError<HAddr>> {
-        if !check_host_addr(haddr, len) {
-            return Err(MemoryAccessError {
+    ) -> Result<&[u8], MemoryAccessError<HAddr>> {
+        match check_host_addr(haddr, len) {
+            true => Ok(&self.mem[haddr.0..haddr.0 + len]),
+            false => Err(MemoryAccessError {
                 oper: MemoryAccessOperation::READ,
                 addr: haddr,
                 len,
-                data: None,
-            });
-        }
-        match (haddr.0, len) {
-            (l, 1) => Ok(self.mem[l] as u32),
-            (l, 2) => Ok(self.mem[l] as u32 + ((self.mem[l + 1] as u32) << 8)),
-            (l, 4) => Ok(self.mem[l] as u32
-                + ((self.mem[l + 1] as u32) << 8)
-                + ((self.mem[l + 2] as u32) << 16)
-                + ((self.mem[l + 3] as u32) << 24)),
-            _ => Err(MemoryAccessError {
-                oper: MemoryAccessOperation::READ,
-                addr: haddr,
-                len,
-                data: None,
             }),
         }
     }
@@ -53,34 +45,15 @@ impl MemoryManager {
     pub(super) fn haddr_write(
         &mut self,
         haddr: HAddr,
-        len: usize,
-        data: Word,
+        data: &[u8],
     ) -> Result<(), MemoryAccessError<HAddr>> {
-        if !check_host_addr(haddr, len) {
-            return Err(MemoryAccessError {
+        let len = data.len();
+        match check_host_addr(haddr, len) {
+            true => Ok(self.mem[haddr.0..haddr.0 + len].copy_from_slice(data)),
+            false => Err(MemoryAccessError {
                 oper: MemoryAccessOperation::WRITE,
                 addr: haddr,
                 len,
-                data: Some(data),
-            });
-        }
-        match (haddr.0, len) {
-            (l, 1) => Ok(self.mem[l] = data as u8),
-            (l, 2) => Ok({
-                self.mem[l] = data as u8;
-                self.mem[l + 1] = (data >> 8) as u8;
-            }),
-            (l, 4) => Ok({
-                self.mem[l] = data as u8;
-                self.mem[l + 1] = (data >> 8) as u8;
-                self.mem[l + 2] = (data >> 16) as u8;
-                self.mem[l + 3] = (data >> 24) as u8;
-            }),
-            _ => Err(MemoryAccessError {
-                oper: MemoryAccessOperation::WRITE,
-                addr: haddr,
-                len,
-                data: Some(data),
             }),
         }
     }
@@ -113,17 +86,27 @@ mod tests {
     #[test]
     fn test_haddr_read_and_write() {
         let mut inner = MEMORY_MANAGER.exclusive_access();
-        assert_eq!(inner.haddr_read(HAddr(0), 1), Ok(0));
-        assert_eq!(inner.haddr_read(HAddr(0), 4), Ok(0));
-        assert_eq!(inner.haddr_read(HAddr(HMEM_SIZE - 4), 4), Ok(0));
-        assert_eq!(inner.haddr_write(HAddr(0), 1, 0xFF), Ok(()));
-        assert_eq!(inner.haddr_read(HAddr(0), 1), Ok(0xFF));
-        assert_eq!(inner.haddr_write(HAddr(0), 1, 0xFFFF), Ok(()));
-        assert_eq!(inner.haddr_read(HAddr(0), 1), Ok(0xFF));
-        assert_eq!(inner.haddr_write(HAddr(4), 4, 0xFFFFFFFF), Ok(()));
-        assert_eq!(inner.haddr_read(HAddr(4), 1), Ok(0xFF));
-        assert_eq!(inner.haddr_read(HAddr(5), 1), Ok(0xFF));
-        assert_eq!(inner.haddr_read(HAddr(4), 2), Ok(0xFFFF));
-        assert_eq!(inner.haddr_read(HAddr(4), 4), Ok(0xFFFFFFFF));
+        assert_eq!(inner.haddr_read(HAddr(0), 1), Ok([0].as_slice()));
+        assert_eq!(inner.haddr_read(HAddr(0), 4), Ok([0; 4].as_slice()));
+        assert_eq!(
+            inner.haddr_read(HAddr(HMEM_SIZE - 4), 4),
+            Ok([0; 4].as_slice())
+        );
+        assert_eq!(inner.haddr_write(0.into(), [0xFF].as_slice()), Ok(()));
+        assert_eq!(inner.haddr_read(0.into(), 1), Ok([0xFF].as_slice()));
+        assert_eq!(inner.haddr_write(HAddr(0), [0xFF; 2].as_slice()), Ok(()));
+        assert_eq!(inner.haddr_read(HAddr(0), 1), Ok([0xFF].as_slice()));
+        assert_eq!(inner.haddr_read(HAddr(1), 1), Ok([0xFF].as_slice()));
+        assert_eq!(inner.haddr_read(HAddr(1), 2), Ok([0xFF, 0x00].as_slice()));
+        assert_eq!(
+            inner.haddr_read(HAddr(1), 4),
+            Ok([0xFF, 0x00, 0x00, 0x00].as_slice())
+        );
+        assert_eq!(inner.haddr_write(HAddr(4), [0xFF; 4].as_slice()), Ok(()));
+        assert_eq!(inner.haddr_read(HAddr(4), 1), Ok([0xFF].as_slice()));
+        assert_eq!(inner.haddr_read(HAddr(5), 1), Ok([0xFF].as_slice()));
+        assert_eq!(inner.haddr_read(HAddr(4), 2), Ok([0xFF; 2].as_slice()));
+        assert_eq!(inner.haddr_read(HAddr(4), 4), Ok([0xFF; 4].as_slice()));
+        assert_eq!(inner.haddr_read(HAddr(3), 2), Ok([0x00, 0xFF].as_slice()));
     }
 }
