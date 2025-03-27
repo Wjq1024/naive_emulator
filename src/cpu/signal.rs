@@ -42,7 +42,7 @@ impl ALUOperation {
             Self::Plus => {
                 let l2 = exec_state.stack.pop().unwrap();
                 let l1 = exec_state.stack.pop().unwrap();
-                exec_state.stack.push(l1 + l2);
+                exec_state.stack.push(l1.wrapping_add(l2));
             }
             Self::ZeroExtend => (),
             Self::SignExtend(bits) => {
