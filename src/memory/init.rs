@@ -5,6 +5,6 @@ use crate::uniprocessor::UPSafeCell;
 
 pub static MEMORY_MANAGER: LazyLock<UPSafeCell<MemoryManager>> = LazyLock::new(|| unsafe {
     UPSafeCell::new(MemoryManager {
-        mem: [0; HMEM_SIZE],
+        mem: vec![0; HMEM_SIZE],
     })
 });

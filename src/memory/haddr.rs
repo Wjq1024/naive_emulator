@@ -2,7 +2,7 @@ use crate::common::{PAddr, PMEM_SIZE, Word};
 
 use super::{MemoryAccessError, MemoryAccessOperation, MemoryManager};
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub(super) struct HAddr(pub usize);
 
 pub(super) const HMEM_OFFSET: usize = 0x80000000;
@@ -15,7 +15,9 @@ impl From<PAddr> for HAddr {
 }
 
 pub(super) fn check_host_addr(haddr: HAddr, len: usize) -> bool {
-    haddr.0 < HMEM_SIZE && haddr.0 + len < HMEM_SIZE && haddr.0 + len > haddr.0
+    haddr.0 < HMEM_SIZE
+        && haddr.0.wrapping_add(len) <= HMEM_SIZE
+        && haddr.0.wrapping_add(len) > haddr.0
 }
 
 impl MemoryManager {
@@ -34,11 +36,11 @@ impl MemoryManager {
         }
         match (haddr.0, len) {
             (l, 1) => Ok(self.mem[l] as u32),
-            (l, 2) => Ok(self.mem[l] as u32 + (self.mem[l + 1] as u32) << 8),
-            (l, 4) => Ok(self.mem[l] as u32 + (self.mem[l + 1] as u32)
-                << 8 + (self.mem[l + 2] as u32)
-                << 16 + (self.mem[l + 3] as u32)
-                << 24),
+            (l, 2) => Ok(self.mem[l] as u32 + ((self.mem[l + 1] as u32) << 8)),
+            (l, 4) => Ok(self.mem[l] as u32
+                + ((self.mem[l + 1] as u32) << 8)
+                + ((self.mem[l + 2] as u32) << 16)
+                + ((self.mem[l + 3] as u32) << 24)),
             _ => Err(MemoryAccessError {
                 oper: MemoryAccessOperation::READ,
                 addr: haddr,
@@ -63,7 +65,7 @@ impl MemoryManager {
             });
         }
         match (haddr.0, len) {
-            (l, 1) => Ok(self.mem[l] = (data & ((1 << 8) - 1)) as u8),
+            (l, 1) => Ok(self.mem[l] = data as u8),
             (l, 2) => Ok({
                 self.mem[l] = data as u8;
                 self.mem[l + 1] = (data >> 8) as u8;
@@ -81,5 +83,47 @@ impl MemoryManager {
                 data: Some(data),
             }),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::usize;
+
+    use crate::memory::init::MEMORY_MANAGER;
+
+    use super::*;
+
+    #[test]
+    fn test_check_host_addr() {
+        assert!(check_host_addr(HAddr(0), 1));
+        assert!(check_host_addr(HAddr(0), 2));
+        assert!(check_host_addr(HAddr(0), 4));
+        assert!(check_host_addr(HAddr(12), 4));
+        assert!(!check_host_addr(HAddr(HMEM_SIZE), 1));
+        assert!(!check_host_addr(HAddr(HMEM_SIZE), 2));
+        assert!(!check_host_addr(HAddr(HMEM_SIZE + 11), 1));
+        assert!(check_host_addr(HAddr(HMEM_SIZE - 1), 1));
+        assert!(!check_host_addr(HAddr(HMEM_SIZE - 1), 2));
+        assert!(check_host_addr(HAddr(HMEM_SIZE - 4), 4));
+        assert!(!check_host_addr(HAddr(HMEM_SIZE - 3), 4));
+        assert!(!check_host_addr(HAddr(HMEM_SIZE - 4), usize::MAX));
+    }
+
+    #[test]
+    fn test_haddr_read_and_write() {
+        let mut inner = MEMORY_MANAGER.exclusive_access();
+        assert_eq!(inner.haddr_read(HAddr(0), 1), Ok(0));
+        assert_eq!(inner.haddr_read(HAddr(0), 4), Ok(0));
+        assert_eq!(inner.haddr_read(HAddr(HMEM_SIZE - 4), 4), Ok(0));
+        assert_eq!(inner.haddr_write(HAddr(0), 1, 0xFF), Ok(()));
+        assert_eq!(inner.haddr_read(HAddr(0), 1), Ok(0xFF));
+        assert_eq!(inner.haddr_write(HAddr(0), 1, 0xFFFF), Ok(()));
+        assert_eq!(inner.haddr_read(HAddr(0), 1), Ok(0xFF));
+        assert_eq!(inner.haddr_write(HAddr(4), 4, 0xFFFFFFFF), Ok(()));
+        assert_eq!(inner.haddr_read(HAddr(4), 1), Ok(0xFF));
+        assert_eq!(inner.haddr_read(HAddr(5), 1), Ok(0xFF));
+        assert_eq!(inner.haddr_read(HAddr(4), 2), Ok(0xFFFF));
+        assert_eq!(inner.haddr_read(HAddr(4), 4), Ok(0xFFFFFFFF));
     }
 }

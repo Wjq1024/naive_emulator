@@ -7,16 +7,16 @@ mod paddr;
 pub use paddr::{paddr_read, paddr_write};
 
 pub struct MemoryManager {
-    mem: [u8; HMEM_SIZE],
+    mem: Vec<u8>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum MemoryAccessOperation {
     READ,
     WRITE,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 struct MemoryAccessError<T> {
     oper: MemoryAccessOperation,
     addr: T,
