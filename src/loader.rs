@@ -1,4 +1,7 @@
-use crate::memory::paddr_write;
+use crate::{
+    common::{PAddr, Word},
+    memory::paddr_write,
+};
 
 pub fn test_load() {
     paddr_write(
@@ -21,4 +24,10 @@ pub fn test_load() {
         4,
         0b00000000000_00000_00000_00000_000000,
     );
+}
+
+pub fn naive_load(img: &[Word]) {
+    img.iter().enumerate().for_each(|(idx, inst)| {
+        paddr_write(PAddr(0x8000_0000 + idx as u32 * 4), 4, *inst);
+    });
 }
