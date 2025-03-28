@@ -1,10 +1,11 @@
-use crate::common::{PAddr, Word};
+use crate::common::{PAddr, SWord, Word};
 
 use super::{Cpu, ExecuteState};
 
 #[derive(Debug)]
 pub enum ALUOperation {
     Plus,
+    Negate,
     SignExtend(usize),
     ZeroExtend,
 }
@@ -21,6 +22,7 @@ pub enum SignalControl {
     NumPush(Word),
     NumPop,
     Halt,
+    CondExec,
     ALUOp(ALUOperation),
 }
 
@@ -49,6 +51,11 @@ impl ALUOperation {
                 let val = exec_state.stack.pop().unwrap();
                 exec_state.stack.push(Self::sign_extend(val, *bits));
             }
+            Self::Negate => {
+                let mut val: SWord = exec_state.stack.pop().unwrap() as SWord;
+                val = -val;
+                exec_state.stack.push(val as Word);
+            }
         }
     }
 }
@@ -57,18 +64,18 @@ impl SignalControl {
     pub fn exec_signal(&self, exec_state: &mut ExecuteState, cpu: &mut Cpu) {
         match self {
             Self::Halt => {
-                exec_state.stop = true;
+                exec_state.halt = true;
             }
             Self::RegWrite => {
                 let val: Word = exec_state.stack.pop().unwrap();
-                cpu.gpr[exec_state.rd] = val;
+                cpu.gpr[exec_state.rd.unwrap()] = val;
             }
             Self::RegRead(1) => {
-                let reg_id = exec_state.rs1;
+                let reg_id = exec_state.rs1.unwrap();
                 exec_state.stack.push(cpu.gpr[reg_id]);
             }
             Self::RegRead(2) => {
-                let reg_id = exec_state.rs2;
+                let reg_id = exec_state.rs2.unwrap();
                 exec_state.stack.push(cpu.gpr[reg_id]);
             }
             Self::PCRead => {
@@ -78,7 +85,13 @@ impl SignalControl {
                 exec_state.npc = PAddr(exec_state.stack.pop().unwrap());
             }
             Self::ImmRead => {
-                exec_state.stack.push(exec_state.imm as Word);
+                exec_state.stack.push(exec_state.imm.unwrap() as Word);
+            }
+            Self::CondExec => {
+                match exec_state.stack.pop().unwrap() {
+                    0 => exec_state.stop_exec = true,
+                    _ => (),
+                };
             }
             Self::ALUOp(alu_op) => {
                 alu_op.exec_alu_operation(exec_state);

@@ -1,7 +1,7 @@
 use std::usize;
 
 use cpu::{CPU, cpu_run};
-use loader::naive_load;
+use loader::test_load;
 
 mod common;
 mod cpu;
@@ -10,7 +10,7 @@ mod memory;
 mod uniprocessor;
 
 fn main() {
-    naive_load();
+    test_load();
     cpu_run(usize::MAX);
     println!("{:?}", CPU.exclusive_access());
 }

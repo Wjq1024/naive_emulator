@@ -1,5 +1,5 @@
 use init::INSTRUCTION_SET;
-use inst::{INST_IMM_MASK, INST_RD_MASK, INST_RS1_MASK, INST_RS2_MASK, Instruction};
+use inst::Instruction;
 
 use crate::{common::*, memory::paddr_read};
 
@@ -17,39 +17,35 @@ pub struct Cpu {
     pc: PAddr,
 }
 
-struct ExecuteState {
+struct ExecuteState<'a> {
     pc: PAddr,
     npc: PAddr,
-    ir: Word,
-    rd: usize,
-    rs1: usize,
-    rs2: usize,
-    imm: usize,
+    ir: Option<Word>,
+    corr_inst: Option<&'a Instruction>,
+    rd: Option<usize>,
+    rs1: Option<usize>,
+    rs2: Option<usize>,
+    imm: Option<usize>,
     stack: Vec<Word>,
-    stop: bool,
+    halt: bool,
+    stop_exec: bool,
 }
 
-impl ExecuteState {
-    fn new(pc: PAddr) -> ExecuteState {
+impl<'a> ExecuteState<'a> {
+    fn new(pc: PAddr) -> ExecuteState<'a> {
         ExecuteState {
             pc: pc,
             npc: (pc.0 + 4).into(),
-            ir: 0,
-            rd: 0,
-            rs1: 0,
-            rs2: 0,
-            imm: 0,
+            ir: None,
+            corr_inst: None,
+            rd: None,
+            rs1: None,
+            rs2: None,
+            imm: None,
             stack: Vec::new(),
-            stop: false,
+            halt: false,
+            stop_exec: false,
         }
-    }
-
-    fn decode(&mut self) {
-        let inst = self.ir;
-        self.rd = ((inst & INST_RD_MASK) >> 6) as usize;
-        self.rs1 = ((inst & INST_RS1_MASK) >> 11) as usize;
-        self.rs2 = ((inst & INST_RS2_MASK) >> 16) as usize;
-        self.imm = ((inst & INST_IMM_MASK) >> 16) as usize;
     }
 }
 
@@ -60,10 +56,11 @@ impl Cpu {
         }
         *EMULATOR_STATUS.exclusive_access() = EmulatorStatus::Running;
         for _ in 0..inst_num {
-            let mut exec_state = self.fetch_inst();
+            let mut exec_state = ExecuteState::new(self.pc);
+            self.fetch_inst(&mut exec_state);
             Self::decode_inst(&mut exec_state);
             self.exec_inst(&mut exec_state);
-            if exec_state.stop {
+            if exec_state.halt {
                 *EMULATOR_STATUS.exclusive_access() = EmulatorStatus::Stop;
                 break;
             }
@@ -74,21 +71,19 @@ impl Cpu {
         }
     }
 
-    fn fetch_inst(&self) -> ExecuteState {
-        let pc = self.pc;
-        let mut ret = ExecuteState::new(pc);
-        ret.ir = paddr_read(pc, 4);
-        ret
+    fn fetch_inst(&self, exec_state: &mut ExecuteState) {
+        exec_state.ir = Some(paddr_read(exec_state.pc, 4));
     }
 
     fn decode_inst(exec_state: &mut ExecuteState) {
-        exec_state.decode();
+        let inst = exec_state.ir.unwrap();
+        let corr_inst: &Instruction = INSTRUCTION_SET.iter().find(|x| x.is_match(inst)).unwrap();
+        exec_state.corr_inst = Some(corr_inst);
+        corr_inst.decode_inst(exec_state);
     }
 
     fn exec_inst(&mut self, exec_state: &mut ExecuteState) {
-        let inst = exec_state.ir;
-        let corr_inst: &Instruction = INSTRUCTION_SET.iter().find(|x| x.is_match(inst)).unwrap();
-        corr_inst.exec_inst(exec_state, self);
+        exec_state.corr_inst.unwrap().exec_inst(exec_state, self);
         self.gpr[0] = 0;
     }
 }
@@ -119,12 +114,12 @@ mod tests {
     fn test_decode_inst() {
         let mut exec_status = ExecuteState::new(0x8000_0000.into());
         let inst: Word = 0b00000000001_00010_00001_00011_000001;
-        exec_status.ir = inst;
+        exec_status.ir = Some(inst);
         Cpu::decode_inst(&mut exec_status);
-        assert_eq!(exec_status.rs1, 1);
-        assert_eq!(exec_status.rs2, 2);
-        assert_eq!(exec_status.rd, 3);
-        assert_eq!(exec_status.imm, 2 + 32);
+        assert_eq!(exec_status.rs1, Some(1));
+        assert_eq!(exec_status.rs2, Some(2));
+        assert_eq!(exec_status.rd, Some(3));
+        assert_eq!(exec_status.imm, None);
     }
 
     #[test]
@@ -141,7 +136,8 @@ mod tests {
             4,
             0b00000000001_00010_00001_00011_000001,
         );
-        let mut exec_state = cpu.fetch_inst();
+        let mut exec_state = ExecuteState::new(0x8000_0000.into());
+        cpu.fetch_inst(&mut exec_state);
         Cpu::decode_inst(&mut exec_state);
         cpu.exec_inst(&mut exec_state);
         assert_eq!(exec_state.npc, 0x8000_0004.into());

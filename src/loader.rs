@@ -1,6 +1,6 @@
 use crate::memory::paddr_write;
 
-pub fn naive_load() {
+pub fn test_load() {
     paddr_write(
         0x8000_0000.into(),
         4,
