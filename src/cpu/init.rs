@@ -22,7 +22,7 @@ pub static INSTRUCTION_SET: LazyLock<Vec<Instruction>> = LazyLock::new(|| {
             type_: InstructionType::D,
             ops: vec![SignalControl::Halt],
         },
-        // add, rd = rs1 + rs2
+        // add, x[rd] = x[rs1] + x[rs2]
         Instruction {
             inst_code: 0b000001,
             type_: InstructionType::A,
@@ -33,7 +33,7 @@ pub static INSTRUCTION_SET: LazyLock<Vec<Instruction>> = LazyLock::new(|| {
                 SignalControl::RegWrite,
             ],
         },
-        // addi, rd = rs1 + sext(imm, 16)
+        // addi, x[rd] = x[rs1] + sext(imm, 16)
         Instruction {
             inst_code: 0b000010,
             type_: InstructionType::B,
@@ -45,7 +45,7 @@ pub static INSTRUCTION_SET: LazyLock<Vec<Instruction>> = LazyLock::new(|| {
                 SignalControl::RegWrite,
             ],
         },
-        // bne, if (rs1 != rs2) pc += sext(imm)
+        // bne, if (x[rs1] != x[rs2]) pc += sext(imm)
         Instruction {
             inst_code: 0b000011,
             type_: InstructionType::C,
@@ -60,6 +60,17 @@ pub static INSTRUCTION_SET: LazyLock<Vec<Instruction>> = LazyLock::new(|| {
                 SignalControl::ALUOp(ALUOperation::SignExtend(16)),
                 SignalControl::ALUOp(ALUOperation::Plus),
                 SignalControl::PCWrite,
+            ],
+        },
+        // mul, x[rd] = x[rs1] * x[rs2]
+        Instruction {
+            inst_code: 0b000100,
+            type_: InstructionType::A,
+            ops: vec![
+                SignalControl::RegRead(1),
+                SignalControl::RegRead(2),
+                SignalControl::ALUOp(ALUOperation::Multiply),
+                SignalControl::RegWrite,
             ],
         },
     ]

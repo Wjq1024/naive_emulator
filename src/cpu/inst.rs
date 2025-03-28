@@ -1,5 +1,3 @@
-use std::any::Any;
-
 use crate::common::Word;
 
 use super::{Cpu, ExecuteState, signal::SignalControl};

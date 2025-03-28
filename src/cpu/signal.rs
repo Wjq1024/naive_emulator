@@ -6,6 +6,7 @@ use super::{Cpu, ExecuteState};
 pub enum ALUOperation {
     Plus,
     Negate,
+    Multiply,
     SignExtend(usize),
     ZeroExtend,
 }
@@ -55,6 +56,11 @@ impl ALUOperation {
                 let mut val: SWord = exec_state.stack.pop().unwrap() as SWord;
                 val = -val;
                 exec_state.stack.push(val as Word);
+            }
+            Self::Multiply => {
+                let l1 = exec_state.stack.pop().unwrap();
+                let l2 = exec_state.stack.pop().unwrap();
+                exec_state.stack.push(l1.wrapping_mul(l2));
             }
         }
     }
