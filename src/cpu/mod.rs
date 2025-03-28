@@ -97,6 +97,14 @@ pub fn cpu_run(inst_num: usize) {
     CPU.exclusive_access().run(inst_num);
 }
 
+pub fn cpu_gpr(gpr_id: usize) -> Word {
+    CPU.exclusive_access().gpr[gpr_id]
+}
+
+pub fn cpu_pc() -> PAddr {
+    CPU.exclusive_access().pc
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{
