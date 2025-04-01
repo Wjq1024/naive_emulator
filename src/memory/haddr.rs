@@ -10,9 +10,19 @@ pub(super) const HMEM_SIZE: usize = PMEM_SIZE;
 
 impl From<PAddr> for HAddr {
     fn from(value: PAddr) -> Self {
-        HAddr(value.0 as usize - HMEM_OFFSET)
+        let offset = value.0 as usize;
+        if offset < HMEM_OFFSET || offset >= HMEM_OFFSET + HMEM_SIZE {
+            panic!(
+                "Invalid physical address: 0x{:X} (must be in range [0x{:X}, 0x{:X}))",
+                offset,
+                HMEM_OFFSET,
+                HMEM_OFFSET + HMEM_SIZE
+            );
+        }
+        HAddr(offset - HMEM_OFFSET)
     }
 }
+
 
 impl From<usize> for HAddr {
     fn from(value: usize) -> Self {
