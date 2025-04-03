@@ -15,6 +15,7 @@ const GPR_SIZE: usize = 1 << 5;
 pub struct Cpu {
     gpr: [Word; GPR_SIZE],
     pc: PAddr,
+
 }
 
 struct ExecuteState<'a> {
@@ -45,9 +46,13 @@ impl<'a> ExecuteState<'a> {
             stack: Vec::new(),
             halt: false,
             stop_exec: false,
+
         }
     }
 }
+
+
+
 
 impl Cpu {
     fn run(&mut self, inst_num: usize) {

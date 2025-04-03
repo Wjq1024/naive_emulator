@@ -45,7 +45,13 @@ impl ALUOperation {
             Self::Plus => {
                 let l2 = exec_state.stack.pop().unwrap();
                 let l1 = exec_state.stack.pop().unwrap();
-                exec_state.stack.push(l1.wrapping_add(l2));
+                // 检测加法溢出
+                if let Some(result) = l1.checked_add(l2) {
+                    exec_state.stack.push(result);
+                } else {
+                    println!("Overflow detected in addition: {} + {}", l1, l2);
+                    exec_state.stack.push(l1.wrapping_add(l2)); // 使用回绕行为
+                }
             }
             Self::ZeroExtend => (),
             Self::SignExtend(bits) => {
@@ -60,7 +66,13 @@ impl ALUOperation {
             Self::Multiply => {
                 let l1 = exec_state.stack.pop().unwrap();
                 let l2 = exec_state.stack.pop().unwrap();
-                exec_state.stack.push(l1.wrapping_mul(l2));
+                // 检测乘法溢出
+                if let Some(result) = l1.checked_mul(l2) {
+                    exec_state.stack.push(result);
+                } else {
+                    println!("Overflow detected in multiplication: {} * {}", l1, l2);
+                    exec_state.stack.push(l1.wrapping_mul(l2)); // 使用回绕行为
+                }
             }
         }
     }
@@ -120,3 +132,5 @@ mod tests {
         assert_eq!(ALUOperation::zero_extend(0x1B, 2), 0x00000003);
     }
 }
+
+

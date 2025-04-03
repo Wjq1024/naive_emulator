@@ -2,7 +2,7 @@ use crate::common::Word;
 
 use super::{Cpu, ExecuteState, signal::SignalControl};
 
-const INST_CODE_MASK: Word = 0x3F;
+pub const INST_CODE_MASK: Word = 0x3F;
 
 pub(super) enum InstructionType {
     // rs1, rs2, rd
