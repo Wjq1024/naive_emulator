@@ -7,7 +7,7 @@ pub use init::CPU;
 
 mod init;
 mod inst;
-mod signal;
+pub mod signal;
 
 const GPR_SIZE: usize = 1 << 5;
 
@@ -18,7 +18,7 @@ pub struct Cpu {
 
 }
 
-struct ExecuteState<'a> {
+pub struct ExecuteState<'a> {
     pc: PAddr,
     npc: PAddr,
     ir: Option<Word>,
@@ -27,13 +27,13 @@ struct ExecuteState<'a> {
     rs1: Option<usize>,
     rs2: Option<usize>,
     imm: Option<usize>,
-    stack: Vec<Word>,
+    pub stack: Vec<Word>,
     halt: bool,
     stop_exec: bool,
 }
 
 impl<'a> ExecuteState<'a> {
-    fn new(pc: PAddr) -> ExecuteState<'a> {
+    pub fn new(pc: PAddr) -> ExecuteState<'a> {
         ExecuteState {
             pc: pc,
             npc: (pc.0 + 4).into(),
