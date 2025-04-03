@@ -46,6 +46,12 @@ impl ALUOperation {
                 let l2 = exec_state.stack.pop().unwrap();
                 let l1 = exec_state.stack.pop().unwrap();
                 exec_state.stack.push(l1.wrapping_add(l2));
+
+
+
+
+
+
             }
             Self::ZeroExtend => (),
             Self::SignExtend(bits) => {
@@ -61,6 +67,12 @@ impl ALUOperation {
                 let l1 = exec_state.stack.pop().unwrap();
                 let l2 = exec_state.stack.pop().unwrap();
                 exec_state.stack.push(l1.wrapping_mul(l2));
+
+
+
+
+
+
             }
         }
     }
@@ -120,3 +132,5 @@ mod tests {
         assert_eq!(ALUOperation::zero_extend(0x1B, 2), 0x00000003);
     }
 }
+
+
