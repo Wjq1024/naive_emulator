@@ -52,6 +52,11 @@ impl ALUOperation {
 
 
 
+
+
+
+
+
             }
             Self::ZeroExtend => (),
             Self::SignExtend(bits) => {
