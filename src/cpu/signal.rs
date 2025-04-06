@@ -1,6 +1,9 @@
 use bitflags::bitflags;
 
-use crate::common::{PAddr, SWord, Word};
+use crate::{
+    common::{PAddr, SWord, Word},
+    memory::{paddr_read, paddr_write},
+};
 
 use super::{Cpu, ExecuteState};
 
@@ -92,6 +95,11 @@ impl ALUOperation {
                 let l1 = exec_state.stack.pop().unwrap();
                 exec_state.stack.push(l1.wrapping_mul(l2));
             }
+            Self::ShiftLeftLogical => {
+                let l2 = exec_state.stack.pop().unwrap();
+                let l1 = exec_state.stack.pop().unwrap();
+                exec_state.stack.push(l1.wrapping_shl(l2));
+            }
             Self::Compare => {
                 let l2 = -(exec_state.stack.pop().unwrap() as SWord);
                 let l1 = exec_state.stack.pop().unwrap() as SWord;
@@ -152,6 +160,19 @@ impl SignalControl {
             }
             Self::ALUOp(alu_op) => {
                 alu_op.exec_alu_operation(exec_state);
+            }
+            Self::NumPush(num) => {
+                exec_state.stack.push(*num);
+            }
+            Self::MemRead => {
+                let paddr = PAddr(exec_state.stack.pop().unwrap());
+                let data = paddr_read(paddr, 4) as Word;
+                exec_state.stack.push(data);
+            }
+            Self::MemWrite => {
+                let data = exec_state.stack.pop().unwrap();
+                let paddr = PAddr(exec_state.stack.pop().unwrap());
+                paddr_write(paddr, 4, data);
             }
             _ => unimplemented!("{:?}", self),
         }
