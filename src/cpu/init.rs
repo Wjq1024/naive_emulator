@@ -130,5 +130,28 @@ pub static INSTRUCTION_SET: LazyLock<Vec<Instruction>> = LazyLock::new(|| {
                 SignalControl::PCWrite,
             ],
         },
+        // slli, x[rd] = x[rs1] << imm
+        Instruction {
+            inst_code: 0b001001,
+            type_: InstructionType::B,
+            ops: vec![
+                SignalControl::RegRead(1),
+                SignalControl::ImmRead,
+                SignalControl::ALUOp(ALUOperation::ShiftLeftLogical),
+                SignalControl::RegWrite,
+            ],
+        },
+        // sub, x[rd] = x[rs1] - x[rs2]
+        Instruction {
+            inst_code: 0b001010,
+            type_: InstructionType::A,
+            ops: vec![
+                SignalControl::RegRead(1),
+                SignalControl::RegRead(2),
+                SignalControl::ALUOp(ALUOperation::Negate),
+                SignalControl::ALUOp(ALUOperation::Add),
+                SignalControl::RegWrite,
+            ],
+        },
     ]
 });
