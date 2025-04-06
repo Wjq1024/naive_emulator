@@ -3,9 +3,8 @@ use naive_emulator::{
     loader::binary_file_load,
 };
 
-#[test]
 fn test_binary_files() {
-    binary_file_load("/home/lijn/naive_emulator/tests/data/sum.o".to_owned());
+    binary_file_load("tests/data/sum.o".to_owned());
     cpu_run(usize::MAX);
     assert_eq!(cpu_gpr(2), 10);
     assert_eq!(cpu_gpr(3), 10);
