@@ -83,7 +83,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_check_bound2() {
-        paddr_read((HMEM_OFFSET as u32 + 1).into(), 1);
+        paddr_read((HMEM_OFFSET as u32 + 1).into(), 2);
     }
 
     #[test]

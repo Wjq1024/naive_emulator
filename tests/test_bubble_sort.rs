@@ -1,9 +1,4 @@
-use naive_emulator::{
-    common::PAddr,
-    cpu::{CPU, cpu_gpr, cpu_pc, cpu_run},
-    loader::naive_load,
-    memory::paddr_read,
-};
+use naive_emulator::{cpu::cpu_run, loader::naive_load, memory::paddr_read};
 
 fn loader() {
     let img = [
