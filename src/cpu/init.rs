@@ -114,5 +114,21 @@ pub static INSTRUCTION_SET: LazyLock<Vec<Instruction>> = LazyLock::new(|| {
                 SignalControl::MemWrite,
             ],
         },
+        // blt, if (rs1 <s rs2) pc += sext(offset)
+        Instruction {
+            inst_code: 0b001000,
+            type_: InstructionType::C,
+            ops: vec![
+                SignalControl::RegRead(1),
+                SignalControl::RegRead(2),
+                SignalControl::ALUOp(ALUOperation::Compare),
+                SignalControl::CondExec(Condition::SignLess),
+                SignalControl::PCRead,
+                SignalControl::ImmRead,
+                SignalControl::ALUOp(ALUOperation::SignExtend(16)),
+                SignalControl::ALUOp(ALUOperation::Add),
+                SignalControl::PCWrite,
+            ],
+        },
     ]
 });

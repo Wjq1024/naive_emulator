@@ -31,7 +31,7 @@ fn loader() {
 }
 
 #[test]
-fn test_add_from_1_to_10() {
+fn test_sum() {
     loader();
     cpu_run(usize::MAX);
     assert_eq!(cpu_gpr(2), 10);

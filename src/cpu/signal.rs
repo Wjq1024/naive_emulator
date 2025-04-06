@@ -29,14 +29,14 @@ bitflags! {
 #[derive(Debug)]
 pub enum Condition {
     NotEqual,
-    Less,
+    SignLess,
 }
 
 impl Condition {
     fn check(&self, code: CompareCode) -> bool {
         match self {
             Condition::NotEqual => !code.contains(CompareCode::ZF),
-            Condition::Less => code.contains(CompareCode::SF) ^ code.contains(CompareCode::OF),
+            Condition::SignLess => code.contains(CompareCode::SF) ^ code.contains(CompareCode::OF),
         }
     }
 }
@@ -93,9 +93,9 @@ impl ALUOperation {
                 exec_state.stack.push(l1.wrapping_mul(l2));
             }
             Self::Compare => {
-                let l2 = exec_state.stack.pop().unwrap() as SWord;
+                let l2 = -(exec_state.stack.pop().unwrap() as SWord);
                 let l1 = exec_state.stack.pop().unwrap() as SWord;
-                let t = l1.wrapping_sub(l2);
+                let t = l1.wrapping_add(l2);
                 let mut code = CompareCode::empty();
                 if (t as Word) < (l1 as Word) {
                     code |= CompareCode::CF;
