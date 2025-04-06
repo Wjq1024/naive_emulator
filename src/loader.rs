@@ -46,6 +46,5 @@ pub fn binary_file_load(file_path: String) {
         });
         program.push(word);
     }
-    assert!(program.len() % 4 == 0);
     naive_load(&program);
 }

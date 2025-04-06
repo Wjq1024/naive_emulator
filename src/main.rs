@@ -1,6 +1,6 @@
 use std::{env, usize};
 
-use cpu::cpu_run;
+use cpu::{CPU, cpu_run};
 use loader::{binary_file_load, test_load};
 
 mod common;
@@ -17,5 +17,5 @@ fn main() {
         binary_file_load(args[1].clone());
     }
     cpu_run(usize::MAX);
-    // println!("{:?}", CPU.exclusive_access());
+    println!("{:?}", CPU.exclusive_access());
 }

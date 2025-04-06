@@ -73,5 +73,6 @@ pub static INSTRUCTION_SET: LazyLock<Vec<Instruction>> = LazyLock::new(|| {
                 SignalControl::RegWrite,
             ],
         },
+        // bge, if (x[rs1] >=s x[rs2]) pc += sext(imm)
     ]
 });
