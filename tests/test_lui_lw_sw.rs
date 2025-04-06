@@ -1,5 +1,5 @@
 use naive_emulator::{
-    common::{PAddr, Word},
+    common::PAddr,
     cpu::{cpu_gpr, cpu_run},
     loader::naive_load,
     memory::paddr_read,
