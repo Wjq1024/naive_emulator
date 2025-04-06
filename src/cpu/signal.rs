@@ -1,14 +1,44 @@
+use bitflags::bitflags;
+
 use crate::common::{PAddr, SWord, Word};
 
 use super::{Cpu, ExecuteState};
 
 #[derive(Debug)]
 pub enum ALUOperation {
-    Plus,
+    Add,
     Negate,
     Multiply,
     SignExtend(usize),
     ZeroExtend,
+    ShiftLeftLogical,
+    ShiftRightLogical,
+    ShiftRightArithmetic,
+    Compare,
+}
+
+bitflags! {
+    pub struct CompareCode: Word {
+        const CF = 1 << 0;
+        const ZF = 1 << 1;
+        const SF = 1 << 2;
+        const OF = 1 << 3;
+    }
+}
+
+#[derive(Debug)]
+pub enum Condition {
+    NotEqual,
+    Less,
+}
+
+impl Condition {
+    fn check(&self, code: CompareCode) -> bool {
+        match self {
+            Condition::NotEqual => !code.contains(CompareCode::ZF),
+            Condition::Less => code.contains(CompareCode::SF) ^ code.contains(CompareCode::OF),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -17,13 +47,13 @@ pub enum SignalControl {
     RegRead(usize),
     PCRead,
     PCWrite,
-    MemRead(PAddr),
-    MemWrite(PAddr),
+    MemRead,
+    MemWrite,
     ImmRead,
     NumPush(Word),
     NumPop,
     Halt,
-    CondExec,
+    CondExec(Condition),
     ALUOp(ALUOperation),
 }
 
@@ -42,7 +72,7 @@ impl ALUOperation {
 
     pub fn exec_alu_operation(&self, exec_state: &mut ExecuteState) {
         match self {
-            Self::Plus => {
+            Self::Add => {
                 let l2 = exec_state.stack.pop().unwrap();
                 let l1 = exec_state.stack.pop().unwrap();
                 exec_state.stack.push(l1.wrapping_add(l2));
@@ -58,10 +88,30 @@ impl ALUOperation {
                 exec_state.stack.push(val as Word);
             }
             Self::Multiply => {
-                let l1 = exec_state.stack.pop().unwrap();
                 let l2 = exec_state.stack.pop().unwrap();
+                let l1 = exec_state.stack.pop().unwrap();
                 exec_state.stack.push(l1.wrapping_mul(l2));
             }
+            Self::Compare => {
+                let l2 = exec_state.stack.pop().unwrap() as SWord;
+                let l1 = exec_state.stack.pop().unwrap() as SWord;
+                let t = l1.wrapping_sub(l2);
+                let mut code = CompareCode::empty();
+                if (t as Word) < (l1 as Word) {
+                    code |= CompareCode::CF;
+                }
+                if t == 0 {
+                    code |= CompareCode::ZF;
+                }
+                if t < 0 {
+                    code |= CompareCode::SF;
+                }
+                if ((l1 < 0) == (l2 < 0)) && ((t < 0) != (l1 < 0)) {
+                    code |= CompareCode::OF;
+                }
+                exec_state.stack.push(code.bits() as Word);
+            }
+            _ => unimplemented!(),
         }
     }
 }
@@ -93,11 +143,12 @@ impl SignalControl {
             Self::ImmRead => {
                 exec_state.stack.push(exec_state.imm.unwrap() as Word);
             }
-            Self::CondExec => {
-                match exec_state.stack.pop().unwrap() {
-                    0 => exec_state.stop_exec = true,
-                    _ => (),
-                };
+            Self::CondExec(cond) => {
+                let ucode = exec_state.stack.pop().unwrap();
+                let code = CompareCode::from_bits(ucode).unwrap();
+                if !cond.check(code) {
+                    exec_state.stop_exec = true;
+                }
             }
             Self::ALUOp(alu_op) => {
                 alu_op.exec_alu_operation(exec_state);
