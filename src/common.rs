@@ -1,4 +1,4 @@
-use std::sync::LazyLock;
+use std::{fmt::Display, sync::LazyLock};
 
 use crate::uniprocessor::UPSafeCell;
 
@@ -11,6 +11,12 @@ pub struct PAddr(pub u32);
 impl From<u32> for PAddr {
     fn from(value: u32) -> Self {
         PAddr(value)
+    }
+}
+
+impl Display for PAddr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "0x{:08x}", self.0)
     }
 }
 

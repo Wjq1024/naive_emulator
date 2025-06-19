@@ -2,6 +2,7 @@ use std::collections::VecDeque;
 
 use init::INSTRUCTION_SET;
 use inst::Instruction;
+use log::info;
 
 use crate::{common::*, memory::{paddr_read, paddr_write}};
 
@@ -13,7 +14,7 @@ mod signal;
 
 const GPR_SIZE: usize = 1 << 5;
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub struct Cpu {
     gpr: [Word; GPR_SIZE],
     pc: PAddr,
@@ -67,31 +68,65 @@ impl<'a> ExecuteState<'a> {
 
     fn fetch_inst(&mut self) -> bool {
         if CPU.exclusive_access().pc_lock {
+            log::info!("fetch_inst: fetch instruction FAILED");
             return false;
         }
+        self.pc = CPU.exclusive_access().pc;
+        self.npc = PAddr(self.pc.0 + 4);
         self.ir = Some(paddr_read(self.pc, 4));
         let inst = self.ir.unwrap();
         let corr_inst: &Instruction = INSTRUCTION_SET.iter().find(|x| x.is_match(inst)).unwrap();
         self.corr_inst = Some(corr_inst);
 
+        log::info!("fetch_inst: fetch instruction at pc = {} SUCCEED", self.pc);
+
         if !corr_inst.write_pc {
             CPU.exclusive_access().pc = self.npc;
+        } else {
+            CPU.exclusive_access().pc_lock = true;
+            log::info!("fetch_inst: pc_locked");
+        }
+
+        if corr_inst.read_mm || corr_inst.write_mm {
+            CPU.exclusive_access().mem_lock = true;
+            log::info!("fetch_inst: mem_locked");
         }
 
         true
     }
 
     fn decode_inst(&mut self) -> bool {
-        let corr_inst = self.corr_inst.unwrap();
-        corr_inst.decode_inst(self);
+        let curr_inst = self.corr_inst.unwrap();
+        curr_inst.decode_inst(self);
+
+        let mut isok = true;
 
         if let Some(rs1) = self.rs1 {
-            self.rs1_val = Some(CPU.exclusive_access().gpr[rs1]);
+            if None == self.rs1_val {
+                if !CPU.exclusive_access().gpr_lock[rs1] {
+                    self.rs1_val = Some(CPU.exclusive_access().gpr[rs1]);
+                } else {
+                    isok = false;
+                }
+            }
         }
         if let Some(rs2) = self.rs2 {
-            self.rs2_val = Some(CPU.exclusive_access().gpr[rs2]);
+            if None == self.rs2_val {
+                if !CPU.exclusive_access().gpr_lock[rs2] {
+                    self.rs2_val = Some(CPU.exclusive_access().gpr[rs2]);
+                } else {
+                    isok = false;
+                }
+            }
         }
-        true
+
+        if let Some(rd) = self.rd {
+            if curr_inst.write_back {
+                CPU.exclusive_access().gpr_lock[rd] = true;
+            }
+        }
+
+        isok
     }
 
     fn exec_inst(&mut self) -> bool {
@@ -111,16 +146,32 @@ impl<'a> ExecuteState<'a> {
             let addr = PAddr(self.stack.pop().unwrap());
             paddr_write(addr, 4, data); 
         }
+
+        if curr_inst.read_mm || curr_inst.write_mm {
+            CPU.exclusive_access().mem_lock = false;
+        }
         true
     }
 
     fn write_back(&mut self) -> bool {
+        let mut cpu = CPU.exclusive_access();
         let curr_inst = self.corr_inst.unwrap();
         if curr_inst.write_back {
-            CPU.exclusive_access().gpr[self.rd.unwrap()] = self.stack.pop().unwrap();
+            let val = self.stack.pop().unwrap();
+            cpu.gpr[self.rd.unwrap()] = val;
+            cpu.gpr_lock[self.rd.unwrap()] = false;
+            log::info!("write_back: write {} into gpr{}",val, self.rd.unwrap());
+            log::info!("write_back: gpr{}_unlocked", self.rd.unwrap());
         }
-        if curr_inst.write_pc && !self.stop_exec {
-            CPU.exclusive_access().pc = self.npc;
+        if curr_inst.write_pc {
+            cpu.pc_lock = false;
+            log::info!("write_back: pc_unlocked");
+            if !self.stop_exec {
+                cpu.pc = PAddr(self.stack.pop().unwrap());
+            } else {
+                cpu.pc = self.npc;
+            }
+            log::info!("write_back: next pc = {}", cpu.pc);
         }
         true
     }
