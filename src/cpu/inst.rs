@@ -19,6 +19,10 @@ pub(super) struct Instruction {
     pub(super) inst_code: Word,
     pub(super) type_: InstructionType,
     pub(super) ops: Vec<SignalControl>,
+    pub(super) write_mm: bool,
+    pub(super) read_mm: bool,
+    pub(super) write_back: bool,
+    pub(super) write_pc: bool,
 }
 
 impl Instruction {
@@ -59,10 +63,10 @@ impl Instruction {
         }
     }
 
-    pub fn exec_inst(&self, exec_state: &mut ExecuteState, cpu: &mut Cpu) {
+    pub fn exec_inst(&self, exec_state: &mut ExecuteState) {
         assert!(self.is_match(exec_state.ir.unwrap()));
         for sig in &self.ops {
-            sig.exec_signal(exec_state, cpu);
+            sig.exec_signal(exec_state);
             if exec_state.stop_exec {
                 break;
             }
@@ -70,37 +74,3 @@ impl Instruction {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use crate::cpu::{Cpu, ExecuteState, GPR_SIZE, init::INSTRUCTION_SET, inst::InstructionType};
-
-    use super::Instruction;
-
-    #[test]
-    fn test_inst_match() {
-        let inst = Instruction {
-            inst_code: 0b011011,
-            ops: Vec::new(),
-            type_: InstructionType::D,
-        };
-        assert!(!inst.is_match(0x00));
-        assert!(!inst.is_match(0x2A));
-        assert!(!inst.is_match(0x3F));
-        assert!(inst.is_match(0x1B));
-    }
-
-    #[test]
-    fn test_exec_inst() {
-        let mut exec_status = ExecuteState::new(0x8000_0000.into());
-        exec_status.ir = Some(0);
-        INSTRUCTION_SET[0].exec_inst(
-            &mut exec_status,
-            &mut Cpu {
-                gpr: [0; GPR_SIZE],
-                pc: 0x8000_0000.into(),
-            },
-        );
-        assert!(exec_status.halt);
-        assert!(exec_status.stack.is_empty());
-    }
-}

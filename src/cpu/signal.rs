@@ -125,22 +125,20 @@ impl ALUOperation {
 }
 
 impl SignalControl {
-    pub fn exec_signal(&self, exec_state: &mut ExecuteState, cpu: &mut Cpu) {
+    pub fn exec_signal(&self, exec_state: &mut ExecuteState) {
         match self {
             Self::Halt => {
                 exec_state.halt = true;
             }
-            Self::RegWrite => {
-                let val: Word = exec_state.stack.pop().unwrap();
-                cpu.gpr[exec_state.rd.unwrap()] = val;
-            }
+            // Self::RegWrite => {
+            //     let val: Word = exec_state.stack.pop().unwrap();
+            //     cpu.gpr[exec_state.rd.unwrap()] = val;
+            // }
             Self::RegRead(1) => {
-                let reg_id = exec_state.rs1.unwrap();
-                exec_state.stack.push(cpu.gpr[reg_id]);
+                exec_state.stack.push(exec_state.rs1_val.unwrap());
             }
             Self::RegRead(2) => {
-                let reg_id = exec_state.rs2.unwrap();
-                exec_state.stack.push(cpu.gpr[reg_id]);
+                exec_state.stack.push(exec_state.rs2_val.unwrap());
             }
             Self::PCRead => {
                 exec_state.stack.push(exec_state.pc.0);

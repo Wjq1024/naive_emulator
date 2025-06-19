@@ -15,6 +15,10 @@ pub static CPU: LazyLock<UPSafeCell<Cpu>> = LazyLock::new(|| unsafe {
     UPSafeCell::new(Cpu {
         gpr: [0; GPR_SIZE],
         pc: PC_ENTRY,
+
+        gpr_lock: [false; GPR_SIZE],
+        pc_lock: false,
+        mem_lock: false
     })
 });
 
@@ -25,6 +29,10 @@ pub static INSTRUCTION_SET: LazyLock<Vec<Instruction>> = LazyLock::new(|| {
             inst_code: 0b000000,
             type_: InstructionType::D,
             ops: vec![SignalControl::Halt],
+            read_mm: false,
+            write_mm: false,
+            write_back: false,
+            write_pc: false,
         },
         // add, x[rd] = x[rs1] + x[rs2]
         Instruction {
@@ -34,8 +42,11 @@ pub static INSTRUCTION_SET: LazyLock<Vec<Instruction>> = LazyLock::new(|| {
                 SignalControl::RegRead(1),
                 SignalControl::RegRead(2),
                 SignalControl::ALUOp(ALUOperation::Add),
-                SignalControl::RegWrite,
             ],
+            read_mm: false,
+            write_mm: false,
+            write_back: true,
+            write_pc: false,
         },
         // addi, x[rd] = x[rs1] + sext(imm, 16)
         Instruction {
@@ -46,8 +57,11 @@ pub static INSTRUCTION_SET: LazyLock<Vec<Instruction>> = LazyLock::new(|| {
                 SignalControl::ImmRead,
                 SignalControl::ALUOp(ALUOperation::SignExtend(16)),
                 SignalControl::ALUOp(ALUOperation::Add),
-                SignalControl::RegWrite,
             ],
+            read_mm: false,
+            write_mm: false,
+            write_back: true,
+            write_pc: false,
         },
         // bne, if (x[rs1] != x[rs2]) pc += sext(imm)
         Instruction {
@@ -62,8 +76,11 @@ pub static INSTRUCTION_SET: LazyLock<Vec<Instruction>> = LazyLock::new(|| {
                 SignalControl::ImmRead,
                 SignalControl::ALUOp(ALUOperation::SignExtend(16)),
                 SignalControl::ALUOp(ALUOperation::Add),
-                SignalControl::PCWrite,
             ],
+            read_mm: false,
+            write_mm: false,
+            write_back: false,
+            write_pc: true,
         },
         // mul, x[rd] = x[rs1] * x[rs2]
         Instruction {
@@ -73,8 +90,11 @@ pub static INSTRUCTION_SET: LazyLock<Vec<Instruction>> = LazyLock::new(|| {
                 SignalControl::RegRead(1),
                 SignalControl::RegRead(2),
                 SignalControl::ALUOp(ALUOperation::Multiply),
-                SignalControl::RegWrite,
             ],
+            read_mm: false,
+            write_mm: false,
+            write_back: true,
+            write_pc: false,
         },
         // lui, x[rd] = (sext(imm) << 16)
         Instruction {
@@ -85,8 +105,11 @@ pub static INSTRUCTION_SET: LazyLock<Vec<Instruction>> = LazyLock::new(|| {
                 SignalControl::ALUOp(ALUOperation::SignExtend(16)),
                 SignalControl::NumPush(16),
                 SignalControl::ALUOp(ALUOperation::ShiftLeftLogical),
-                SignalControl::RegWrite,
             ],
+            read_mm: false,
+            write_mm: false,
+            write_back: true,
+            write_pc: false,
         },
         // lw, x[rd] = M[x[rs1] + sext(imm)]
         Instruction {
@@ -97,9 +120,11 @@ pub static INSTRUCTION_SET: LazyLock<Vec<Instruction>> = LazyLock::new(|| {
                 SignalControl::ALUOp(ALUOperation::SignExtend(16)),
                 SignalControl::RegRead(1),
                 SignalControl::ALUOp(ALUOperation::Add),
-                SignalControl::MemRead,
-                SignalControl::RegWrite,
             ],
+            read_mm: true,
+            write_mm: false,
+            write_back: true,
+            write_pc: false,
         },
         // sw, M[x[rs1] + sext(imm)] = x[rs2]
         Instruction {
@@ -111,8 +136,11 @@ pub static INSTRUCTION_SET: LazyLock<Vec<Instruction>> = LazyLock::new(|| {
                 SignalControl::ALUOp(ALUOperation::SignExtend(16)),
                 SignalControl::ALUOp(ALUOperation::Add),
                 SignalControl::RegRead(2),
-                SignalControl::MemWrite,
             ],
+            read_mm: false,
+            write_mm: true,
+            write_back: false,
+            write_pc: false,
         },
         // blt, if (rs1 <s rs2) pc += sext(offset)
         Instruction {
@@ -127,8 +155,11 @@ pub static INSTRUCTION_SET: LazyLock<Vec<Instruction>> = LazyLock::new(|| {
                 SignalControl::ImmRead,
                 SignalControl::ALUOp(ALUOperation::SignExtend(16)),
                 SignalControl::ALUOp(ALUOperation::Add),
-                SignalControl::PCWrite,
             ],
+            read_mm: false,
+            write_mm: false,
+            write_back: false,
+            write_pc: true,
         },
         // slli, x[rd] = x[rs1] << imm
         Instruction {
@@ -138,8 +169,11 @@ pub static INSTRUCTION_SET: LazyLock<Vec<Instruction>> = LazyLock::new(|| {
                 SignalControl::RegRead(1),
                 SignalControl::ImmRead,
                 SignalControl::ALUOp(ALUOperation::ShiftLeftLogical),
-                SignalControl::RegWrite,
             ],
+            read_mm: false,
+            write_mm: false,
+            write_back: true,
+            write_pc: false,
         },
         // sub, x[rd] = x[rs1] - x[rs2]
         Instruction {
@@ -150,8 +184,11 @@ pub static INSTRUCTION_SET: LazyLock<Vec<Instruction>> = LazyLock::new(|| {
                 SignalControl::RegRead(2),
                 SignalControl::ALUOp(ALUOperation::Negate),
                 SignalControl::ALUOp(ALUOperation::Add),
-                SignalControl::RegWrite,
             ],
+            read_mm: false,
+            write_mm: false,
+            write_back: true,
+            write_pc: false,
         },
     ]
 });
