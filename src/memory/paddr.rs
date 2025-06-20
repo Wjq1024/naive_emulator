@@ -7,7 +7,7 @@ use super::{MemoryAccessError, MemoryAccessOperation, MemoryManager, init::MEMOR
 impl MemoryManager {
     fn paddr_read(&self, paddr: PAddr, len: usize) -> Word {
         match (paddr.0, len) {
-            (pa, 1 | 2 | 4) if pa % 4 == 0 => {
+            (pa, len @ (1 | 2 | 4)) if (pa as usize) % len == 0 => {
                 let val = self
                     .haddr_read(paddr.into(), len)
                     .map_err(|x| MemoryAccessError::<PAddr> {
@@ -83,7 +83,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_check_bound2() {
-        paddr_read((HMEM_OFFSET as u32 + 1).into(), 1);
+        paddr_read((HMEM_OFFSET as u32 + 1).into(), 2);
     }
 
     #[test]

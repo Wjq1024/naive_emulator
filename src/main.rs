@@ -1,7 +1,7 @@
-use std::usize;
+use std::{env, usize};
 
 use cpu::{CPU, cpu_run};
-use loader::test_load;
+use loader::{binary_file_load, test_load};
 
 mod common;
 mod cpu;
@@ -10,7 +10,12 @@ mod memory;
 mod uniprocessor;
 
 fn main() {
-    test_load();
+    let args: Vec<String> = env::args().collect();
+    if args.len() < 2 {
+        test_load();
+    } else {
+        binary_file_load(args[1].clone());
+    }
     cpu_run(usize::MAX);
     println!("{:?}", CPU.exclusive_access());
 }

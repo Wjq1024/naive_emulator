@@ -32,7 +32,7 @@ fn loader() {
 }
 
 #[test]
-fn test_add() {
+fn test_bne() {
     loader();
     cpu_run(usize::MAX);
     assert_eq!(cpu_gpr(3), 0);
